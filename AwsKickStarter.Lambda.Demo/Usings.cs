@@ -1,0 +1,9 @@
+﻿global using Amazon.Lambda.S3Events;
+global using Amazon.Lambda.SNSEvents;
+global using Amazon.Lambda.SQSEvents;
+global using AwsKickStarter.Lambda.Demo.Services;
+global using Microsoft.Extensions.Logging;
+global using System;
+global using System.Collections.Generic;
+global using System.Linq;
+global using System.Threading.Tasks;

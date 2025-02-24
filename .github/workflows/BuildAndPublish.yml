@@ -1,0 +1,78 @@
+# This workflow will build and publish the project
+#
+# Prerequisites:
+#
+#   1) The NuGet API key stored as a repository secret named NUGET_KEY
+#      in Settings > Secrets and variables > Actions > Secrets
+#
+#   2) Workflow permissions set to read and write
+#      in Settings > Actions > General
+
+name: Build and Publish
+
+on:
+  workflow_dispatch:   # This makes the workflow manual
+    inputs:
+      version:
+        description: 'What is the package version'
+        required: true
+        default: '1.0.0'
+
+jobs:
+  build-and-publish:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: 8.0.x
+
+    - name: Build
+      shell: pwsh
+      run: dotnet build -c Release .\AwsKickStarter.Lambda.sln
+  
+    - name: Test AwsKickStarter.Lambda
+      shell: pwsh
+      run: |
+        $workspace = $env:GITHUB_WORKSPACE
+        dotnet test .\AwsKickStarter.Lambda.Tests\AwsKickStarter.Lambda.Tests.csproj -c Release --no-build --framework net8.0 -l "console;verbosity=normal" --results-directory:"$workspace/TestResults" /p:CollectCoverage=true /p:CoverletOutputFormat=opencover /p:CoverletOutput="$workspace/TestResults/coverage.xml" /p:Include=[AwsKickStarter.Lambda]* /p:Threshold=100
+
+    - name: Report Generator
+      uses: danielpalme/ReportGenerator-GitHub-Action@5.1.26
+      with:
+        reports: TestResults/coverage.xml
+        targetdir: TestResults/CoverageReport
+        reporttypes: TextSummary
+
+    - name: Output Coverage Report
+      shell: pwsh
+      run:  |
+        $workspace = $env:GITHUB_WORKSPACE
+        $report = Get-Content "$workspace/TestResults/CoverageReport/Summary.txt" -Raw
+        Write-Host $report
+
+    - name: Pack AwsKickStarter.Lambda
+      shell: pwsh
+      run: |
+        $version = '${{ github.event.inputs.version }}'
+        $year = Get-Date -Format 'yyyy'
+        $copyright = "`"Copyright © Barry Dunne $year`""
+        Write-Host "Packing v$version of $project"
+        dotnet pack /p:PackageVersion=$version /p:AssemblyVersion=$version /p:FileVersion=$version /p:Copyright=$copyright -c Release AwsKickStarter.Lambda.sln --output "${{env.DOTNET_ROOT}}\Package"
+
+    - name: Publish
+      shell: pwsh
+      run: dotnet nuget push "${{env.DOTNET_ROOT}}/Package/*.${{ github.event.inputs.version }}.nupkg" -s https://api.nuget.org/v3/index.json -k ${{ secrets.NUGET_KEY }}
+
+    - name: Tag version
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git tag ${{ github.event.inputs.version }}
+        git push origin ${{ github.event.inputs.version }}

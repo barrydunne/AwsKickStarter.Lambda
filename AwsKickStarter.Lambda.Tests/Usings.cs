@@ -1,0 +1,15 @@
+﻿global using Amazon.Lambda.Core;
+global using Amazon.Lambda.S3Events;
+global using Amazon.Lambda.SNSEvents;
+global using Amazon.Lambda.SQSEvents;
+global using AutoFixture;
+global using AwsKickStarter.Lambda.Internal;
+global using AwsKickStarter.Lambda.Tests.TestHandlers;
+global using NSubstitute;
+global using Shouldly;
+global using System;
+global using System.Collections.Concurrent;
+global using System.Collections.Generic;
+global using System.Linq;
+global using System.Threading.Tasks;
+global using Xunit;
