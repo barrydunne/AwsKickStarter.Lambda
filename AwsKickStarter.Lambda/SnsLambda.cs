@@ -1,14 +1,16 @@
-﻿namespace AwsKickStarter.Lambda;
+﻿using Serilog;
+
+namespace AwsKickStarter.Lambda;
 
 /// <summary>
 /// The base class for a lambda function with an SNS source.
 /// </summary>
-public abstract class SnsLambda : ILambdaIn<SNSEvent>
+public abstract class SnsLambda : ILambdaIn<SNSEvent>, ILogConfiguration
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="SnsLambda"/> class.
     /// </summary>
-    public SnsLambda() => ServiceBuilder = new LambdaServiceBuilder(GetType().Assembly);
+    public SnsLambda() => ServiceBuilder = new LambdaServiceBuilder(GetType().Assembly, this);
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SnsLambda"/> class.
@@ -36,6 +38,9 @@ public abstract class SnsLambda : ILambdaIn<SNSEvent>
         var handler = scope.ServiceProvider.GetRequiredService<ISnsLambdaHandler>();
         await handler.Handle(snsEvent.Records.Select(middleware.Decode));
     }
+
+    /// <inheritdoc/>
+    public virtual void ConfigureLogging(LoggerConfiguration loggerConfiguration) { }
 
     /// <inheritdoc/>
     public ValueTask DisposeAsync() => ServiceBuilder.DisposeAsync();

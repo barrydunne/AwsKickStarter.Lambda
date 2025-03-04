@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using Serilog;
 
 namespace AwsKickStarter.Lambda;
 
@@ -6,12 +7,12 @@ namespace AwsKickStarter.Lambda;
 /// The base class for a lambda function with an SNS source where messages contain JSON that will be deserialized to a type.
 /// </summary>
 /// <typeparam name="TMessage">The type of message in the SNS event.</typeparam>
-public abstract class SnsLambda<TMessage> : ILambdaIn<SNSEvent>
+public abstract class SnsLambda<TMessage> : ILambdaIn<SNSEvent>, ILogConfiguration
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="SnsLambda{TMessage}"/> class.
     /// </summary>
-    public SnsLambda() => ServiceBuilder = new LambdaServiceBuilder(GetType().Assembly);
+    public SnsLambda() => ServiceBuilder = new LambdaServiceBuilder(GetType().Assembly, this);
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SnsLambda{TMessage}"/> class.
@@ -39,6 +40,9 @@ public abstract class SnsLambda<TMessage> : ILambdaIn<SNSEvent>
         var handler = scope.ServiceProvider.GetRequiredService<ISnsLambdaHandler<TMessage>>();
         await handler.Handle(snsEvent.Records.Select(middleware.Decode).Select(middleware.Deserialize<TMessage>));
     }
+
+    /// <inheritdoc/>
+    public virtual void ConfigureLogging(LoggerConfiguration loggerConfiguration) { }
 
     /// <inheritdoc/>
     public ValueTask DisposeAsync() => ServiceBuilder.DisposeAsync();

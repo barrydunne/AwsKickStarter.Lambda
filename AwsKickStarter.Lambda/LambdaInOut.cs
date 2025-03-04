@@ -1,16 +1,18 @@
-﻿namespace AwsKickStarter.Lambda;
+﻿using Serilog;
+
+namespace AwsKickStarter.Lambda;
 
 /// <summary>
 /// The base class for a lambda function that takes an input and returns output.
 /// </summary>
 /// <typeparam name="TInput">The type of input.</typeparam>
 /// <typeparam name="TOutput">The type of output.</typeparam>
-public abstract class LambdaInOut<TInput, TOutput> : ILambdaInOut<TInput, TOutput>
+public abstract class LambdaInOut<TInput, TOutput> : ILambdaInOut<TInput, TOutput>, ILogConfiguration
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="LambdaInOut{TInput, TOutput}"/> class.
     /// </summary>
-    public LambdaInOut() => ServiceBuilder = new LambdaServiceBuilder(GetType().Assembly);
+    public LambdaInOut() => ServiceBuilder = new LambdaServiceBuilder(GetType().Assembly, this);
 
     /// <summary>
     /// Initializes a new instance of the <see cref="LambdaInOut{TInput, TOutput}"/> class.
@@ -37,6 +39,9 @@ public abstract class LambdaInOut<TInput, TOutput> : ILambdaInOut<TInput, TOutpu
         var handler = scope.ServiceProvider.GetRequiredService<ILambdaInOutHandler<TInput, TOutput>>();
         return await handler.Handle(input);
     }
+
+    /// <inheritdoc/>
+    public virtual void ConfigureLogging(LoggerConfiguration loggerConfiguration) { }
 
     /// <inheritdoc/>
     public ValueTask DisposeAsync() => ServiceBuilder.DisposeAsync();

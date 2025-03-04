@@ -1,14 +1,16 @@
-﻿namespace AwsKickStarter.Lambda;
+﻿using Serilog;
+
+namespace AwsKickStarter.Lambda;
 
 /// <summary>
 /// The base class for a lambda function with an S3 source.
 /// </summary>
-public abstract class S3Lambda : ILambdaIn<S3Event>
+public abstract class S3Lambda : ILambdaIn<S3Event>, ILogConfiguration
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="S3Lambda"/> class.
     /// </summary>
-    public S3Lambda() => ServiceBuilder = new LambdaServiceBuilder(GetType().Assembly);
+    public S3Lambda() => ServiceBuilder = new LambdaServiceBuilder(GetType().Assembly, this);
 
     /// <summary>
     /// Initializes a new instance of the <see cref="S3Lambda"/> class.
@@ -36,6 +38,9 @@ public abstract class S3Lambda : ILambdaIn<S3Event>
         var handler = scope.ServiceProvider.GetRequiredService<IS3LambdaHandler>();
         await handler.Handle(s3Event.Records.Select(middleware.Decode));
     }
+
+    /// <inheritdoc/>
+    public virtual void ConfigureLogging(LoggerConfiguration loggerConfiguration) { }
 
     /// <inheritdoc/>
     public ValueTask DisposeAsync() => ServiceBuilder.DisposeAsync();

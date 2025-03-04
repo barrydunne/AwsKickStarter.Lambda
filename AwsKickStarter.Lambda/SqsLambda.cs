@@ -1,14 +1,16 @@
-﻿namespace AwsKickStarter.Lambda;
+﻿using Serilog;
+
+namespace AwsKickStarter.Lambda;
 
 /// <summary>
 /// The base class for a lambda function with an SQS source.
 /// </summary>
-public abstract class SqsLambda : ILambdaIn<SQSEvent>
+public abstract class SqsLambda : ILambdaIn<SQSEvent>, ILogConfiguration
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="SqsLambda"/> class.
     /// </summary>
-    public SqsLambda() => ServiceBuilder = new LambdaServiceBuilder(GetType().Assembly);
+    public SqsLambda() => ServiceBuilder = new LambdaServiceBuilder(GetType().Assembly, this);
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SqsLambda"/> class.
@@ -36,6 +38,9 @@ public abstract class SqsLambda : ILambdaIn<SQSEvent>
         var handler = scope.ServiceProvider.GetRequiredService<ISqsLambdaHandler>();
         await handler.Handle(sqsEvent.Records.Select(middleware.Decode));
     }
+
+    /// <inheritdoc/>
+    public virtual void ConfigureLogging(LoggerConfiguration loggerConfiguration) { }
 
     /// <inheritdoc/>
     public ValueTask DisposeAsync() => ServiceBuilder.DisposeAsync();

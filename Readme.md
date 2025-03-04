@@ -102,6 +102,15 @@ Logging is implemented using Serilog with the choice of output sinks done in the
 }
 ```
 
+Additional logging configuration is possible by overriding the `ConfigureLogging` method on the lambda class. For example
+
+```csharp
+public class MyLambda : SqsLambda<MyInput>
+{
+    public override void ConfigureLogging(LoggerConfiguration loggerConfiguration)
+        => loggerConfiguration.Enrich.WithProperty("MyProperty", "MyValue");
+}
+```
 
 
 # Demos

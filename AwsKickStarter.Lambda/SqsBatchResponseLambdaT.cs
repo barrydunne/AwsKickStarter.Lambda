@@ -1,10 +1,12 @@
-﻿namespace AwsKickStarter.Lambda;
+﻿using Serilog;
+
+namespace AwsKickStarter.Lambda;
 
 /// <summary>
 /// The base class for a lambda function with an SQS source configured with ReportBatchItemFailures where messages contain JSON that will be deserialized to a type.
 /// </summary>
 /// <typeparam name="TMessage">The type of message in the SQS event.</typeparam>
-public abstract class SqsBatchResponseLambda<TMessage> : ILambdaInOut<SQSEvent, SQSBatchResponse>
+public abstract class SqsBatchResponseLambda<TMessage> : ILambdaInOut<SQSEvent, SQSBatchResponse>, ILogConfiguration
 {
     private readonly SqsBatchHandler _sqsBatchHandler;
 
@@ -13,7 +15,7 @@ public abstract class SqsBatchResponseLambda<TMessage> : ILambdaInOut<SQSEvent, 
     /// </summary>
     public SqsBatchResponseLambda()
     {
-        ServiceBuilder = new LambdaServiceBuilder(GetType().Assembly);
+        ServiceBuilder = new LambdaServiceBuilder(GetType().Assembly, this);
         _sqsBatchHandler = new();
     }
 
@@ -48,6 +50,9 @@ public abstract class SqsBatchResponseLambda<TMessage> : ILambdaInOut<SQSEvent, 
         return await _sqsBatchHandler.Handle(sqsEvent, context, async (message)
             => await handler.Handle(middleware.Deserialize<TMessage>(middleware.Decode(message))));
     }
+
+    /// <inheritdoc/>
+    public virtual void ConfigureLogging(LoggerConfiguration loggerConfiguration) { }
 
     /// <inheritdoc/>
     public ValueTask DisposeAsync() => ServiceBuilder.DisposeAsync();

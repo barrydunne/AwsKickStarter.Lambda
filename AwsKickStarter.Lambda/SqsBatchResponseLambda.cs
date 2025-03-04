@@ -1,9 +1,11 @@
-﻿namespace AwsKickStarter.Lambda;
+﻿using Serilog;
+
+namespace AwsKickStarter.Lambda;
 
 /// <summary>
 /// The base class for a lambda function with an SQS source configured with ReportBatchItemFailures.
 /// </summary>
-public abstract class SqsBatchResponseLambda : ILambdaInOut<SQSEvent, SQSBatchResponse>
+public abstract class SqsBatchResponseLambda : ILambdaInOut<SQSEvent, SQSBatchResponse>, ILogConfiguration
 {
     private readonly SqsBatchHandler _sqsBatchHandler;
 
@@ -12,7 +14,7 @@ public abstract class SqsBatchResponseLambda : ILambdaInOut<SQSEvent, SQSBatchRe
     /// </summary>
     public SqsBatchResponseLambda()
     {
-        ServiceBuilder = new LambdaServiceBuilder(GetType().Assembly);
+        ServiceBuilder = new LambdaServiceBuilder(GetType().Assembly, this);
         _sqsBatchHandler = new();
     }
 
@@ -47,6 +49,9 @@ public abstract class SqsBatchResponseLambda : ILambdaInOut<SQSEvent, SQSBatchRe
         return await _sqsBatchHandler.Handle(sqsEvent, context, async (message)
             => await handler.Handle(middleware.Decode(message)));
     }
+
+    /// <inheritdoc/>
+    public virtual void ConfigureLogging(LoggerConfiguration loggerConfiguration) { }
 
     /// <inheritdoc/>
     public ValueTask DisposeAsync() => ServiceBuilder.DisposeAsync();

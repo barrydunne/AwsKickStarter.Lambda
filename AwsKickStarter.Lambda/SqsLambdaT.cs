@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using Serilog;
 
 namespace AwsKickStarter.Lambda;
 
@@ -6,12 +7,12 @@ namespace AwsKickStarter.Lambda;
 /// The base class for a lambda function with an SQS source where messages contain JSON that will be deserialized to a type.
 /// </summary>
 /// <typeparam name="TMessage">The type of message in the SQS event.</typeparam>
-public abstract class SqsLambda<TMessage> : ILambdaIn<SQSEvent>
+public abstract class SqsLambda<TMessage> : ILambdaIn<SQSEvent>, ILogConfiguration
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="SqsLambda{TMessage}"/> class.
     /// </summary>
-    public SqsLambda() => ServiceBuilder = new LambdaServiceBuilder(GetType().Assembly);
+    public SqsLambda() => ServiceBuilder = new LambdaServiceBuilder(GetType().Assembly, this);
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SqsLambda{TMessage}"/> class.
@@ -39,6 +40,9 @@ public abstract class SqsLambda<TMessage> : ILambdaIn<SQSEvent>
         var handler = scope.ServiceProvider.GetRequiredService<ISqsLambdaHandler<TMessage>>();
         await handler.Handle(sqsEvent.Records.Select(middleware.Decode).Select(middleware.Deserialize<TMessage>));
     }
+
+    /// <inheritdoc/>
+    public virtual void ConfigureLogging(LoggerConfiguration loggerConfiguration) { }
 
     /// <inheritdoc/>
     public ValueTask DisposeAsync() => ServiceBuilder.DisposeAsync();

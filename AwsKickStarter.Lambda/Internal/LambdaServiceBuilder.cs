@@ -7,12 +7,16 @@ namespace AwsKickStarter.Lambda.Internal;
 /// <inheritdoc/>
 internal class LambdaServiceBuilder : ILambdaServiceBuilder
 {
+    private readonly ILogConfiguration _logConfiguration;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="LambdaServiceBuilder"/> class.
     /// </summary>
     /// <param name="serviceAssembly">The assembly to scan for interface implementations.</param>
-    internal LambdaServiceBuilder(Assembly serviceAssembly)
+    /// <param name="logConfiguration">May provide additional logger configuration.</param>
+    internal LambdaServiceBuilder(Assembly serviceAssembly, ILogConfiguration logConfiguration)
     {
+        _logConfiguration = logConfiguration;
         Configuration = BuildConfiguration();
 
         var services = new ServiceCollection();
@@ -41,9 +45,12 @@ internal class LambdaServiceBuilder : ILambdaServiceBuilder
 
     private void ConfigureLogging(ServiceCollection services)
     {
-        Log.Logger = new LoggerConfiguration()
+        var config = new LoggerConfiguration()
             .ReadFrom.Configuration(Configuration)
-            .CreateLogger();
+            .Enrich.WithEnvironmentName();
+
+        _logConfiguration.ConfigureLogging(config);
+        Log.Logger = config.CreateLogger();
 
         services.AddLogging(builder =>
         {
