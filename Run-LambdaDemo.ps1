@@ -2,6 +2,9 @@ param (
     [Parameter(Mandatory=$true)]
     [string]
     $LambdaNamespace, # Eg 'Simple.Lambda'
+    [ValidateSet('arm64', 'x86_64')]
+    [string]
+    $Architecture = 'x86_64',
     [switch]
     $Rebuild # Rebuild the lambda demo zip file
 )
@@ -14,17 +17,20 @@ function New-Lambda {
         [Parameter(Mandatory=$true)]
         [string]
         $Namespace,
+        [string]
+        $AwsArchitecture,
         [bool]
         $Rebuild
     )    
+
     $root = Join-Path -Path $PSScriptRoot -ChildPath AwsKickStarter.Lambda.Demo
-    $zipPath = Join-Path -Path $root -ChildPath "bin/Release/net8.0/AwsKickStarter.Lambda.Demo.zip"
+    $zipPath = Join-Path -Path $root -ChildPath "bin/Release/net10.0/AwsKickStarter.Lambda.Demo.zip"
     if (-not (Test-Path $zipPath)) {
         $Rebuild = $true
     }
     if ($Rebuild) {
         Set-Location $root
-        dotnet lambda package $zipPath --function-architecture arm64
+        dotnet lambda package $zipPath --function-architecture $AwsArchitecture
     }
 
     Write-Host 'Remove existing lambda function'
@@ -34,7 +40,7 @@ function New-Lambda {
     Write-Host 'Create lambda function'
     Write-Host "Handler: $handler"
     Write-Host "ZipPath: $zipPath"
-    aws lambda create-function --profile localstack --function-name $FunctionName --environment '{"Variables":{"ASPNETCORE_ENVIRONMENT":"Development","LAMBDA_NET_SERIALIZER_DEBUG":"true"}}' --runtime dotnet8 --architectures arm64 --zip-file fileb://$zipPath --handler $handler --role 'arn:aws:iam::000000000000:role/lambda-role' --memory-size 128 --timeout 30 --tracing-config Mode=PassThrough --no-cli-pager
+    aws lambda create-function --profile localstack --function-name $FunctionName --environment '{"Variables":{"ASPNETCORE_ENVIRONMENT":"Development","LAMBDA_NET_SERIALIZER_DEBUG":"true"}}' --runtime dotnet10 --architectures $awsArchitecture --zip-file fileb://$zipPath --handler $handler --role 'arn:aws:iam::000000000000:role/lambda-role' --memory-size 128 --timeout 30 --tracing-config Mode=PassThrough --no-cli-pager
 
     Write-Host 'Wait for the function to become active'
     do {
@@ -142,10 +148,12 @@ function Start-LambdaSimpleDemo {
         [Parameter(Mandatory=$true)]
         [string]
         $Namespace,
+        [string]
+        $AwsArchitecture,
         [bool]
         $Rebuild
     )
-    New-Lambda -FunctionName $FunctionName -Namespace $Namespace -Rebuild $Rebuild
+    New-Lambda -FunctionName $FunctionName -Namespace $Namespace -AwsArchitecture $AwsArchitecture -Rebuild $Rebuild
 
     $withInput = $Namespace.Contains('LambdaIn')
     $withOutput = $Namespace.EndsWith('Out')
@@ -170,6 +178,8 @@ function Start-LambdaS3Demo {
         [Parameter(Mandatory=$true)]
         [string]
         $Namespace,
+        [string]
+        $AwsArchitecture,
         [bool]
         $Rebuild
     )
@@ -184,7 +194,7 @@ function Start-LambdaS3Demo {
     }
     aws s3 rb "s3://$bucket" --profile localstack --no-cli-pager --force 2> $null
 
-    New-Lambda -FunctionName $FunctionName -Namespace $Namespace -Rebuild $Rebuild
+    New-Lambda -FunctionName $FunctionName -Namespace $Namespace -AwsArchitecture $AwsArchitecture -Rebuild $Rebuild
 
     Write-Host 'Create S3 bucket and upload file'
     aws s3 mb "s3://$bucket" --profile localstack --no-cli-pager
@@ -206,6 +216,8 @@ function Start-LambdaSnsDemo {
         [Parameter(Mandatory=$true)]
         [string]
         $Namespace,
+        [string]
+        $AwsArchitecture,
         [bool]
         $Rebuild
     )
@@ -220,7 +232,7 @@ function Start-LambdaSnsDemo {
     }
     aws sns delete-topic --profile localstack --topic-arn $topicArn --no-cli-pager 2> $null
 
-    New-Lambda -FunctionName $FunctionName -Namespace $Namespace -Rebuild $Rebuild
+    New-Lambda -FunctionName $FunctionName -Namespace $Namespace -AwsArchitecture $AwsArchitecture -Rebuild $Rebuild
     $functionArn = $(aws lambda get-function --profile localstack --function-name $functionName --no-cli-pager | ConvertFrom-Json).Configuration.FunctionArn
 
     Write-Host 'Create SNS'
@@ -245,6 +257,8 @@ function Start-LambdaSqsDemo {
         [Parameter(Mandatory=$true)]
         [string]
         $Namespace,
+        [string]
+        $AwsArchitecture,
         [bool]
         $Rebuild
     )
@@ -267,7 +281,7 @@ function Start-LambdaSqsDemo {
     aws sqs delete-queue --profile localstack --queue-url $dlqueueUrl --no-cli-pager 2> $null
     aws sns delete-topic --profile localstack --topic-arn $topicArn --no-cli-pager 2> $null
 
-    New-Lambda -FunctionName $FunctionName -Namespace $Namespace -Rebuild $Rebuild
+    New-Lambda -FunctionName $FunctionName -Namespace $Namespace -AwsArchitecture $AwsArchitecture -Rebuild $Rebuild
 
     Write-Host 'Create SQS/SNS'
     aws sns create-topic --profile localstack --name $topicName --region $region --no-cli-pager
@@ -303,16 +317,16 @@ try {
     }
 
     if ($LambdaNamespace.Contains('Simple')) {
-        Start-LambdaSimpleDemo -FunctionName $functionName -Namespace $LambdaNamespace -Rebuild $Rebuild
+        Start-LambdaSimpleDemo -FunctionName $functionName -Namespace $LambdaNamespace -AwsArchitecture $Architecture -Rebuild $Rebuild
     }
     elseif ($LambdaNamespace.Contains('S3')) {
-        Start-LambdaS3Demo -FunctionName $functionName -Namespace $LambdaNamespace -Rebuild $Rebuild
+        Start-LambdaS3Demo -FunctionName $functionName -Namespace $LambdaNamespace -AwsArchitecture $Architecture -Rebuild $Rebuild
     }
     elseif ($LambdaNamespace.Contains('Sns')) {
-        Start-LambdaSnsDemo -FunctionName $functionName -Namespace $LambdaNamespace -Rebuild $Rebuild
+        Start-LambdaSnsDemo -FunctionName $functionName -Namespace $LambdaNamespace -AwsArchitecture $Architecture -Rebuild $Rebuild
     }
     elseif ($LambdaNamespace.Contains('Sqs')) {
-        Start-LambdaSqsDemo -FunctionName $functionName -Namespace $LambdaNamespace -Rebuild $Rebuild
+        Start-LambdaSqsDemo -FunctionName $functionName -Namespace $LambdaNamespace -AwsArchitecture $Architecture -Rebuild $Rebuild
     }
 }
 finally {

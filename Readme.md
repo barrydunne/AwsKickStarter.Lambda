@@ -22,10 +22,11 @@ Each base class has an associated handler interface, the choice of base class wi
 All of the handler interfaces define a single `Handle` method with the appropriate parameters and return types.
 For example `ISqsBatchResponseLambdaHandler<TMessage>` defines `Task<bool> Handle(TMessage message)`.
 
-The `IS3LambdaHandler` handler will receive a collection of S3 events that may be processed in bulk.
-The `ISnsLambdaHandler` handler will receive a collection of notifications that may be processed in bulk.
-The `ISqsLambdaHandler` handler will receive a collection of messages that may be processed in bulk. If an unhandled exception is thrown all messages will remain on the queue to be retried.
-The `ISqsBatchResponseLambdaHandler` handler will receive multiple calls each with a single message. If the handler returns false, or an unhandled exception is thrown, the single failed message will remain on the queue to be retried.
++ The `IS3LambdaHandler` handler will receive a collection of S3 events that may be processed in bulk.
++ The `ISnsLambdaHandler` handler will receive a collection of notifications that may be processed in bulk.
++ The `ISqsLambdaHandler` handler will receive a collection of messages that may be processed in bulk. If an unhandled exception is thrown all messages will remain on the queue to be retried.
++ The `ISqsBatchResponseLambdaHandler` handler will receive multiple calls each with a single message. If the handler returns false, or an unhandled exception is thrown, the single failed message will remain on the queue to be retried.
+
 When implementing a batch response lambda the event source should be configured with `ReportBatchItemFailures`. See [AWS best practices](https://docs.aws.amazon.com/prescriptive-guidance/latest/lambda-event-filtering-partial-batch-responses-for-sqs/best-practices-partial-batch-responses.html).
 
 The SNS and SQS lambda support automatic gzip decompression of messages when the message attributes include `Content-Encoding` set to `gzip`.
@@ -121,35 +122,43 @@ Running the demonstrations below requires the following:
 * [AWS CLI](https://awscli.amazonaws.com/AWSCLIV2.msi)
 * [AWS profile named `localstack`](https://docs.localstack.cloud/user-guide/integrations/aws-cli/#configuring-a-custom-profile)
 * [Powershell 7](https://learn.microsoft.com/en-us/powershell/scripting/install/installing-powershell)
-* [dotnet SDK >= 8](https://get.dot.net)
+* [dotnet SDK >= 10](https://get.dot.net)
 * AWS dotnet lambda tools `dotnet tool install -g Amazon.Lambda.Tools`
+
+Supported architectures are x86_64 or arm64.
+
+Note that all demos can be run using the following command
+```pwsh
+./Run-AllLambdaDemos.ps1 -Architecture x86_64 -Rebuild
+```
+
 
 ## Simple
 
 ```pwsh
-./Run-LambdaDemo.ps1 -LambdaNamespace Simple.Lambda
+./Run-LambdaDemo.ps1 -LambdaNamespace Simple.Lambda -Architecture x86_64
 ```
 This will invoke the lambda without waiting for completion.
 
 ```pwsh
-./Run-LambdaDemo.ps1 -LambdaNamespace Simple.LambdaIn
+./Run-LambdaDemo.ps1 -LambdaNamespace Simple.LambdaIn -Architecture x86_64
 ```
 This will invoke the lambda passing a payload without waiting for completion.
 
 ```pwsh
-./Run-LambdaDemo.ps1 -LambdaNamespace Simple.LambdaOut
+./Run-LambdaDemo.ps1 -LambdaNamespace Simple.LambdaOut -Architecture x86_64
 ```
 This will invoke the lambda waiting for completion and display the output.
 
 ```pwsh
-./Run-LambdaDemo.ps1 -LambdaNamespace Simple.LambdaInOut
+./Run-LambdaDemo.ps1 -LambdaNamespace Simple.LambdaInOut -Architecture x86_64
 ```
 This will invoke the lambda passing a payload waiting for completion and display the output.
 
 ## S3
 
 ```pwsh
-./Run-LambdaDemo.ps1 -LambdaNamespace S3
+./Run-LambdaDemo.ps1 -LambdaNamespace S3 -Architecture x86_64
 ```
 This will receive an event that an S3 file has been created.
 
@@ -158,7 +167,7 @@ Watch the lambda container log to see the activity.
 ## SNS
 
 ```pwsh
-./Run-LambdaDemo.ps1 -LambdaNamespace Sns.Lambda
+./Run-LambdaDemo.ps1 -LambdaNamespace Sns.Lambda -Architecture x86_64
 ```
 This will receive five notifications from the topic.
 One of the notifications will fail, when this happens only the failed message will be retried after one minute.
@@ -168,12 +177,12 @@ Watch the lambda container log to see the activity.
 
 LambdaT will show the same behaviour.
 ```pwsh
-./Run-LambdaDemo.ps1 -LambdaNamespace Sns.LambdaT
+./Run-LambdaDemo.ps1 -LambdaNamespace Sns.LambdaT -Architecture x86_64
 ```
 ## Basic SQS
 
 ```pwsh
-./Run-LambdaDemo.ps1 -LambdaNamespace Sqs.Basic
+./Run-LambdaDemo.ps1 -LambdaNamespace Sqs.Basic -Architecture x86_64
 ```
 This will receive a batch of five messages from the queue, two of which were sent directly to the queue and three published to SNS.
 One of the messages will fail, when this happens all messages are left on the queue for all messages to be retried after one minute.
@@ -188,13 +197,13 @@ To check the number of messages on the dead letter queue use this command
 
 BasicT will show the same behaviour.
 ```pwsh
-./Run-LambdaDemo.ps1 -LambdaNamespace Sqs.BasicT
+./Run-LambdaDemo.ps1 -LambdaNamespace Sqs.BasicT -Architecture x86_64
 ```
 
 ## Batch Response SQS
 
 ```pwsh
-./Run-LambdaDemo.ps1 -LambdaNamespace Sqs.BatchResponse
+./Run-LambdaDemo.ps1 -LambdaNamespace Sqs.BatchResponse -Architecture x86_64
 ```
 This will receive a batch of five messages from the queue, two of which were sent directly to the queue and three published to SNS.
 One of the messages will fail, when this happens only the failed message is left on the queue to be retried after one minute.
@@ -209,5 +218,5 @@ To check the number of messages on the dead letter queue use this command
 
 BatchResponseT will show the same behaviour.
 ```pwsh
-./Run-LambdaDemo.ps1 -LambdaNamespace Sqs.BatchResponseT
+./Run-LambdaDemo.ps1 -LambdaNamespace Sqs.BatchResponseT -Architecture x86_64
 ```

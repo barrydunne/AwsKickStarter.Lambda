@@ -2,10 +2,10 @@ $localstackContainerId = docker ps -q -f name=localstack
 if (-not $localstackContainerId) {
     Write-Host 'Start LocalStack'
     if ($env:LOCALSTACK_AUTH_TOKEN) {
-        docker run -d --name localstack -p 4566:4566 -e PERSISTENCE=1 -e LAMBDA_KEEPALIVE_MS=120000 -e LOCALSTACK_AUTH_TOKEN=$env:LOCALSTACK_AUTH_TOKEN -v //var/run/docker.sock:/var/run/docker.sock localstack/localstack-pro:4.2
+        docker run -d --name localstack -p 4566:4566 -e PERSISTENCE=1 -e LAMBDA_KEEPALIVE_MS=120000 -e LOCALSTACK_AUTH_TOKEN=$env:LOCALSTACK_AUTH_TOKEN -v //var/run/docker.sock:/var/run/docker.sock localstack/localstack-pro:4.14
     }
     else {
-        docker run -d --name localstack -p 4566:4566 -e PERSISTENCE=1 -e LAMBDA_KEEPALIVE_MS=120000 -v //var/run/docker.sock:/var/run/docker.sock localstack/localstack:4.2
+        docker run -d --name localstack -p 4566:4566 -e PERSISTENCE=1 -e LAMBDA_KEEPALIVE_MS=120000 -v //var/run/docker.sock:/var/run/docker.sock localstack/localstack:4.14
     }    
 
     Write-Host 'Waiting for LocalStack services to be ready...'
@@ -38,7 +38,7 @@ if (-not $localstackContainerId) {
                 Start-Sleep -s 5
             }
         } catch {
-            Write-Host "Error during health check: $($_.Exception.Message). Waiting..."
+            Write-Host "Health check not ready: $($_.Exception.Message). Waiting..."
             Start-Sleep -s 5
         }
     }
